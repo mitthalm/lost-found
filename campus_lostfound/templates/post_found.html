@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Report Found Item - Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h2>Report a Found Item</h2>
+        <p>Help reunite lost items with their owners</p>
+    </div>
+    
+    <div class="progress-bar">
+        <div class="progress-step active" data-step="1">
+            <span class="step-number">1</span>
+            <span class="step-label">Basic Info</span>
+        </div>
+        <div class="progress-step" data-step="2">
+            <span class="step-number">2</span>
+            <span class="step-label">Details</span>
+        </div>
+        <div class="progress-step" data-step="3">
+            <span class="step-number">3</span>
+            <span class="step-label">Photo</span>
+        </div>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data" class="multi-step-form">
+        <!-- Step 1 -->
+        <div class="form-step active" data-step="1">
+            <div class="form-group">
+                <label for="title">Item Title *</label>
+                <input type="text" id="title" name="title" required class="form-control" placeholder="e.g., Black Wallet, Silver Ring, USB Drive">
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <select id="category" name="category" required class="form-control">
+                    <option value="">Select a category</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Books">Books</option>
+                    <option value="Documents">Documents</option>
+                    <option value="Keys">Keys</option>
+                    <option value="Wallet/Purse">Wallet/Purse</option>
+                    <option value="Jewelry">Jewelry</option>
+                    <option value="Sports Equipment">Sports Equipment</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="location">Where did you find it? *</label>
+                <input type="text" id="location" name="location" required class="form-control" placeholder="e.g., Library, Cafeteria, Parking Lot A">
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" disabled>Previous</button>
+                <button type="button" class="btn btn-primary next-step">Next Step</button>
+            </div>
+        </div>
+        
+        <!-- Step 2 -->
+        <div class="form-step" data-step="2">
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="4" class="form-control" placeholder="Describe the item and any distinguishing features..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="keywords">Keywords</label>
+                <input type="text" id="keywords" name="keywords" class="form-control" placeholder="e.g., leather, metal, zippered, brand name">
+                <small>Separate keywords with commas. This helps with matching.</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="date_found">Date Found *</label>
+                <input type="date" id="date_found" name="date_found" required class="form-control">
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary prev-step">Previous</button>
+                <button type="button" class="btn btn-primary next-step">Next Step</button>
+            </div>
+        </div>
+        
+        <!-- Step 3 -->
+        <div class="form-step" data-step="3">
+            <div class="form-group">
+                <label for="photo">Upload Photo</label>
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">Upload Image</div>
+                        <p>Drag and drop your image here or click to browse</p>
+                        <p class="upload-hint">Supported formats: JPG, PNG, GIF (Max 16MB)</p>
+                    </div>
+                    <input type="file" id="photo" name="photo" accept="image/*" class="file-input">
+                </div>
+                <div id="imagePreview" class="image-preview" style="display: none;">
+                    <img src="" alt="Preview">
+                    <button type="button" class="remove-image" id="removeImage">×</button>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary prev-step">Previous</button>
+                <button type="submit" class="btn btn-primary">Submit Found Item</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Multi-step form logic
+const steps = document.querySelectorAll('.form-step');
+const progressSteps = document.querySelectorAll('.progress-step');
+const nextButtons = document.querySelectorAll('.next-step');
+const prevButtons = document.querySelectorAll('.prev-step');
+let currentStep = 1;
+
+function showStep(step) {
+    steps.forEach(s => s.classList.remove('active'));
+    progressSteps.forEach(p => p.classList.remove('active'));
+    
+    document.querySelector(`.form-step[data-step="${step}"]`).classList.add('active');
+    document.querySelector(`.progress-step[data-step="${step}"]`).classList.add('active');
+    
+    // Update progress
+    for (let i = 1; i <= step; i++) {
+        document.querySelector(`.progress-step[data-step="${i}"]`).classList.add('active');
+    }
+}
+
+function validateStep(step) {
+    const currentStepElement = document.querySelector(`.form-step[data-step="${step}"]`);
+    const requiredFields = currentStepElement.querySelectorAll('[required]');
+    // Clear previous errors
+    currentStepElement.querySelectorAll('.field-error').forEach(e => e.remove());
+    let valid = true;
+    for (let field of requiredFields) {
+        field.classList.remove('invalid-field');
+        if (!field.value || !String(field.value).trim()) {
+            // show inline error
+            const err = document.createElement('div');
+            err.className = 'field-error';
+            err.style.color = '#e3342f';
+            err.style.marginTop = '6px';
+            err.textContent = 'This field is required.';
+            field.classList.add('invalid-field');
+            field.parentNode.appendChild(err);
+            if (valid) field.focus();
+            valid = false;
+        }
+    }
+    return valid;
+}
+
+nextButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        if (validateStep(currentStep)) {
+            currentStep++;
+            showStep(currentStep);
+        }
+    });
+});
+
+prevButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        currentStep--;
+        showStep(currentStep);
+    });
+});
+
+// File upload
+const fileUploadArea = document.getElementById('fileUploadArea');
+const fileInput = document.querySelector('.file-input');
+const imagePreview = document.getElementById('imagePreview');
+const previewImage = imagePreview.querySelector('img');
+const removeImageBtn = document.getElementById('removeImage');
+
+fileUploadArea.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            imagePreview.style.display = 'block';
+            fileUploadArea.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+removeImageBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    imagePreview.style.display = 'none';
+    fileUploadArea.style.display = 'block';
+});
+
+// Drag and drop
+fileUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.add('drag-over');
+});
+
+fileUploadArea.addEventListener('dragleave', () => {
+    fileUploadArea.classList.remove('drag-over');
+});
+
+fileUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        const event = new Event('change', { bubbles: true });
+        fileInput.dispatchEvent(event);
+    }
+});
+
+// Set today's date as default
+document.getElementById('date_found').valueAsDate = new Date();
+
+// Clear error when user starts typing
+document.addEventListener('input', (e) => {
+    const field = e.target;
+    if (field.classList.contains('invalid-field')) {
+        field.classList.remove('invalid-field');
+        const err = field.parentNode.querySelector('.field-error');
+        if (err) err.remove();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Campus Lost & Found - Home{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h1 class="hero-title">Lost something? Found something?</h1>
+        <p class="hero-subtitle">We have got you covered.</p>
+        
+        <div class="hero-actions">
+            <div class="action-card lost-card" onclick="window.location.href='{{ url_for('login', next=url_for('post_lost')) if not current_user else url_for('post_lost') }}'">
+                <div class="card-icon">Lost</div>
+                <h3>I Lost Something</h3>
+                <p>Report your lost item and let our community help you find it</p>
+            </div>
+            
+            <div class="action-card found-card" onclick="window.location.href='{{ url_for('login', next=url_for('post_found')) if not current_user else url_for('post_found') }}'">
+                <div class="card-icon">Found</div>
+                <h3>I Found Something</h3>
+                <p>Help others by reporting items you have found on campus</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="container">
+        <h2 class="section-title">Live Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_lost }}</div>
+                <div class="stat-label">Lost Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_found }}</div>
+                <div class="stat-label">Found Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_claimed }}</div>
+                <div class="stat-label">Recoveries</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="recent-section">
+    <div class="container">
+        <h2 class="section-title">Recent Listings</h2>
+        <div class="recent-carousel">
+            {% for item in recent_items %}
+            <div class="recent-card" onclick="window.location.href='{{ url_for('item_detail', item_id=item.item_id) }}'">
+                <div class="recent-image item-card-photo">
+                    {% if item.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + item.photo) }}"
+                         alt="{{ item.title }}">
+                    {% else %}
+                    <div class="no-photo">No Photo Available</div>
+                    {% endif %}
+                </div>
+                <div class="recent-content">
+                    <h4>{{ item.title }}</h4>
+                    <div class="recent-meta">
+                        <span class="category-badge">{{ item.category }}</span>
+                        {% if item.status == 'lost' %}
+                        <span class="status-pill lost">Lost</span>
+                        {% elif item.status == 'found' %}
+                        <span class="status-pill found">Found</span>
+                        {% else %}
+                        <span class="status-pill claimed">Claimed</span>
+                        {% endif %}
+                    </div>
+                    <p class="location">{{ item.location }}</p>
+                    <p class="date">{{ item.date_reported.strftime('%b %d, %Y') }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

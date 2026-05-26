@@ -1,0 +1,24 @@
+<div class="social-auth">
+    {% if google_auth_enabled %}
+    <a href="{{ url_for('google_login', next=next|default(none)) }}" class="btn-social btn-google">
+        <img src="{{ url_for('static', filename='icons/google.svg') }}" alt="" width="20" height="20">
+        Continue with Google
+    </a>
+    {% endif %}
+
+    {% if apple_auth_enabled %}
+    <a href="{{ url_for('apple_login', next=next|default(none)) }}" class="btn-social btn-apple">
+        <img src="{{ url_for('static', filename='icons/apple.svg') }}" alt="" width="20" height="20">
+        Continue with Apple
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('phone_login') }}" class="btn-social btn-phone">
+        <img src="{{ url_for('static', filename='icons/phone.svg') }}" alt="" width="20" height="20">
+        Continue with Phone Number
+    </a>
+</div>
+
+<div class="auth-divider">
+    <span>{{ divider_text|default('or sign in with email') }}</span>
+</div>

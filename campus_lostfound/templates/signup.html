@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card auth-card--unified">
+        <div class="auth-header">
+            <div class="lf-badge" aria-hidden="true">
+                <span class="lf-top">LOST</span>
+                <span class="lf-amp">&</span>
+                <span class="lf-bottom">FOUND</span>
+            </div>
+            <h2>Create Account</h2>
+            <p>Join our campus community</p>
+        </div>
+
+        {% set divider_text = 'or sign up with email' %}
+        {% include 'auth/_social_auth.html' %}
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" required class="form-control" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required class="form-control" placeholder="your.email@campus.edu">
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone Number (optional)</label>
+                <input type="tel" id="phone" name="phone" class="form-control" placeholder="+91 98765 43210" value="+91" onfocus="handlePhoneFocus(this)">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div style="position:relative;">
+                    <input type="password" id="password" name="password" required class="form-control" placeholder="Create a strong password">
+                    <span class="toggle-password" onclick="togglePassword('password', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; color:#888;">👁️</span>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+        </form>
+
+        <p class="auth-footer">
+            Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

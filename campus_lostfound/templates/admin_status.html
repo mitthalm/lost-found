@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}System Status - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-section container" style="padding:2rem;">
+  <h2 style="color:var(--surface); background:var(--primary); padding:0.75rem 1rem; border-radius:6px;">System Status</h2>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin-top:1rem;">
+    <div class="stat-card" style="padding:1rem;">
+      <h4>Database</h4>
+      <p>Status: <strong style="color: {{ 'green' if db_status.connected else 'red' }};">{{ 'Connected' if db_status.connected else 'Disconnected' }}</strong></p>
+      {% if db_status.last_ping %}<p>Last ping: {{ db_status.last_ping }}</p>{% endif %}
+    </div>
+
+    <div class="stat-card" style="padding:1rem;">
+      <h4>Backend</h4>
+      <p>Uptime: <strong>{{ uptime }}</strong></p>
+      <p>Server time: {{ now }}</p>
+    </div>
+
+    <div class="stat-card" style="padding:1rem;">
+      <h4>Templates</h4>
+      {% for name, ok in templates_ok.items() %}
+        <p>{{ name }}: <strong style="color: {{ 'green' if ok else 'red' }};">{{ 'OK' if ok else 'Missing' }}</strong></p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <p style="margin-top:1rem; color:var(--text-secondary);">This page auto-refreshes every 30 seconds.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+setTimeout(() => { location.reload(); }, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <div class="admin-header">
+        <h1>Admin Dashboard</h1>
+        <p>Manage the campus lost and found system</p>
+    </div>
+    
+    <div class="analytics-cards">
+        <div class="analytics-card">
+            <div class="card-number">{{ total_items }}</div>
+            <div class="card-label">Total Items</div>
+        </div>
+        <div class="analytics-card">
+            <div class="card-number">{{ pending_claims_count }}</div>
+            <div class="card-label">Pending Claims</div>
+        </div>
+        <div class="analytics-card">
+            <div class="card-number">{{ successful_recoveries }}</div>
+            <div class="card-label">Recoveries</div>
+        </div>
+    </div>
+    
+    <div class="charts-section">
+        <div class="chart-container">
+            <h3>Items by Category</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Status Distribution</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+    
+
+    <div class="admin-section" id="claims">
+        <h2>Claims
+            <span style="font-size:0.9rem; font-weight:400; margin-left:1rem;">
+                <a href="?claim_status=all" class="btn btn-sm {% if claim_status=='all' %}btn-primary{% else %}btn-secondary{% endif %}">All</a>
+                <a href="?claim_status=pending" class="btn btn-sm {% if claim_status=='pending' %}btn-primary{% else %}btn-secondary{% endif %}">Pending</a>
+                <a href="?claim_status=approved" class="btn btn-sm {% if claim_status=='approved' %}btn-primary{% else %}btn-secondary{% endif %}">Approved</a>
+                <a href="?claim_status=rejected" class="btn btn-sm {% if claim_status=='rejected' %}btn-primary{% else %}btn-secondary{% endif %}">Rejected</a>
+            </span>
+        </h2>
+        <form method="get" style="margin:1rem 0;">
+            <input type="text" name="claim_search" value="{{ claim_search or '' }}" placeholder="Search claims by title or user..." class="form-control" style="max-width:320px;display:inline-block;">
+            <button type="submit" class="btn btn-sm btn-primary">Search</button>
+        </form>
+        {% for claim in claims %}
+        <div class="claim-review-card">
+            <div class="claim-review-header">
+                <div>
+                    <h4>
+                        <a href="{{ url_for('item_detail', item_id=claim.item.item_id) }}">{{ claim.item.title }}</a>
+                    </h4>
+                    <p><strong>Claimant:</strong> {{ claim.claimer.name }} ({{ claim.claimer.email }})</p>
+                    <p><strong>Status:</strong> {{ claim.status.title() }}</p>
+                    <p><strong>Submitted:</strong> {{ claim.claimed_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    {% if claim.ownership_confirmed %}
+                    <span class="ownership-badge">Ownership Confirmed</span>
+                    {% endif %}
+                </div>
+                {% if claim.status == 'pending' %}
+                <div class="claim-review-actions">
+                    <form method="POST" action="{{ url_for('approve_claim', claim_id=claim.claim_id) }}" onsubmit="return confirm('Approve this claim?');">
+                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('reject_claim', claim_id=claim.claim_id) }}" onsubmit="return confirm('Reject this claim?');">
+                        <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            <p><strong>Claim message:</strong> {{ claim.message }}</p>
+            {% if claim.proof_image %}
+            <p><strong>Proof photo:</strong></p>
+            <a href="{{ url_for('static', filename='uploads/claims/' + claim.proof_image) }}" target="_blank" rel="noopener">
+                <img src="{{ url_for('static', filename='uploads/claims/' + claim.proof_image) }}" alt="Proof" class="proof-thumbnail">
+            </a>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h3>No claims found</h3>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="admin-section">
+        <h2>All Items</h2>
+        <form method="get" style="margin:1rem 0;">
+            <select name="item_status" class="form-control" style="max-width:160px;display:inline-block;">
+                <option value="">All Statuses</option>
+                <option value="lost" {% if item_status=='lost' %}selected{% endif %}>Lost</option>
+                <option value="found" {% if item_status=='found' %}selected{% endif %}>Found</option>
+                <option value="claimed" {% if item_status=='claimed' %}selected{% endif %}>Claimed</option>
+            </select>
+            <select name="item_category" class="form-control" style="max-width:160px;display:inline-block;">
+                <option value="">All Categories</option>
+                {% for cat, _ in categories %}
+                <option value="{{ cat }}" {% if item_category==cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="item_search" value="{{ item_search or '' }}" placeholder="Search items..." class="form-control" style="max-width:200px;display:inline-block;">
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+        </form>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Location</th>
+                    <th>Posted By</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>
+                        <div class="item-info">
+                            {% if item.photo %}
+                            <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.title }}" class="item-thumbnail">
+                            {% endif %}
+                            {{ item.title }}
+                        </div>
+                    </td>
+                    <td><span class="category-badge">{{ item.category }}</span></td>
+                    <td>
+                        {% if item.status == 'lost' %}<span class="status-pill lost">Lost</span>
+                        {% elif item.status == 'found' %}<span class="status-pill found">Found</span>
+                        {% else %}<span class="status-pill claimed">Claimed</span>{% endif %}
+                    </td>
+                    <td>{{ item.location }}</td>
+                    <td>{{ item.user.name }}</td>
+                    <td>{{ item.date_reported.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        <a href="{{ url_for('item_detail', item_id=item.item_id) }}" class="btn btn-sm btn-secondary">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="admin-section">
+        <h2>All Users</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in all_users %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone or 'Not provided' }}</td>
+                    <td><span class="role-badge {{ user.role }}">{{ user.role.title() }}</span></td>
+                    <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const palette = {
+    primary: '#1B3A6B',
+    secondary: '#8B0000',
+    accent: '#C9A84C',
+    success: '#2E6B3E',
+    warning: '#B8860B',
+    muted: '#6B6B6B'
+};
+
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(categoryCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for cat, count in categories %}'{{ cat }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Items by Category',
+            data: [{% for cat, count in categories %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [palette.primary, palette.secondary, palette.accent, palette.success, palette.warning, palette.muted, '#4A6FA5', '#A67C52']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { color: palette.muted }, grid: { color: '#EBE8E0' } },
+            x: { ticks: { color: palette.muted }, grid: { display: false } }
+        }
+    }
+});
+
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'pie',
+    data: {
+        labels: [{% for status, count in status_counts %}'{% if status == "lost" %}Lost{% elif status == "found" %}Found{% else %}Claimed{% endif %}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for status, count in status_counts %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [palette.secondary, palette.primary, palette.success]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: palette.muted }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

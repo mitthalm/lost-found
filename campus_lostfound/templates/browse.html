@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Items - Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div class="browse-container">
+    <div class="browse-header">
+        <h2>Browse Items</h2>
+        <p>Find lost items or see what has been found</p>
+    </div>
+    
+    <div class="container">
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Status:</label>
+                <div class="filter-toggle">
+                    <button type="button" class="toggle-btn {{ 'active' if current_status == 'all' }}" onclick="filterByStatus('all')">All</button>
+                    <button type="button" class="toggle-btn {{ 'active' if current_status == 'lost' }}" onclick="filterByStatus('lost')">Lost</button>
+                    <button type="button" class="toggle-btn {{ 'active' if current_status == 'found' }}" onclick="filterByStatus('found')">Found</button>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label for="categoryFilter">Category:</label>
+                <select id="categoryFilter" class="form-control" onchange="applyFilters()">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category }}" {{ 'selected' if current_category == category }}>{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="locationFilter">Location:</label>
+                <select id="locationFilter" class="form-control" onchange="applyFilters()">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                    <option value="{{ location }}" {{ 'selected' if current_location == location }}>{{ location }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+        </div>
+    </div>
+    
+    <div class="items-grid">
+        {% for item in items %}
+        <div class="item-card" onclick="window.location.href='{{ url_for('item_detail', item_id=item.item_id) }}'">
+            <div class="item-card-photo">
+                {% if item.photo %}
+                <img src="{{ url_for('static', filename='uploads/' + item.photo) }}"
+                     alt="{{ item.title }}">
+                {% else %}
+                <div class="no-photo">No Photo Available</div>
+                {% endif %}
+            </div>
+            
+            <div class="item-content">
+                <h3>{{ item.title }}</h3>
+                <div class="item-meta">
+                    <span class="category-badge">{{ item.category }}</span>
+                    {% if item.status == 'lost' %}
+                    <span class="status-pill lost">Lost</span>
+                    {% elif item.status == 'found' %}
+                    <span class="status-pill found">Found</span>
+                    {% else %}
+                    <span class="status-pill claimed">Claimed</span>
+                    {% endif %}
+                </div>
+                <p class="item-description">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                <div class="item-details">
+                    <p class="location">{{ item.location }}</p>
+                    <p class="date">{{ item.date_reported.strftime('%b %d, %Y') }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if items|length == 0 %}
+    <div class="no-results container">
+        <h3>No items found</h3>
+        <p>Try adjusting your filters or check back later</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterByStatus(status) {
+    const url = new URL(window.location);
+    url.searchParams.set('status', status);
+    window.location.href = url.toString();
+}
+
+function applyFilters() {
+    const url = new URL(window.location);
+    const category = document.getElementById('categoryFilter').value;
+    const location = document.getElementById('locationFilter').value;
+    if (category) url.searchParams.set('category', category);
+    else url.searchParams.delete('category');
+    if (location) url.searchParams.set('location', location);
+    else url.searchParams.delete('location');
+    window.location.href = url.toString();
+}
+
+function resetFilters() {
+    window.location.href = '{{ url_for("browse") }}';
+}
+</script>
+{% endblock %}

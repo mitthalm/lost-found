@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-section container" style="padding:2rem;">
+  <h2 style="color:var(--surface); background:var(--primary); padding:0.75rem 1rem; border-radius:6px;">User Management</h2>
+  <div style="overflow:auto; margin-top:1rem;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr style="text-align:left; border-bottom:1px solid var(--border);">
+          <th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Posts</th><th>Active</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr style="border-bottom:1px solid var(--bg-secondary);">
+          <td>{{ u.name }}</td>
+          <td>{{ u.email or '—' }}</td>
+          <td>{{ u.role }}</td>
+          <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+          <td>{{ posts.get(u.user_id, 0) }}</td>
+          <td>{{ 'Yes' if u.is_active else 'No' }}</td>
+          <td>
+            <form action="{{ url_for('admin_change_role', user_id=u.user_id) }}" method="post" style="display:inline-block;">
+              <select name="role" style="padding:6px;">
+                <option value="user" {% if u.role=='user' %}selected{% endif %}>User</option>
+                <option value="moderator" {% if u.role=='moderator' %}selected{% endif %}>Moderator</option>
+                <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
+              </select>
+              <button class="btn btn-sm btn-primary" type="submit" onclick="return confirm('Change role for {{ u.name }}?')">Update</button>
+            </form>
+
+            <form action="{{ url_for('admin_toggle_active', user_id=u.user_id) }}" method="post" style="display:inline-block; margin-left:8px;">
+              <button class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-success{% endif %}" type="submit">{% if u.is_active %}Suspend{% else %}Activate{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

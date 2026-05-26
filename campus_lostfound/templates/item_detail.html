@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.title }} - Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div class="item-detail-container">
+    <div class="item-detail-header">
+        <div class="breadcrumb">
+            <a href="{{ url_for('browse') }}">Back to Browse</a>
+        </div>
+        <h1>{{ item.title }}</h1>
+        <div class="item-badges">
+            <span class="category-badge">{{ item.category }}</span>
+            {% if item.status == 'lost' %}
+            <span class="status-pill lost">Lost</span>
+            {% elif item.status == 'found' %}
+            <span class="status-pill found">Found</span>
+            {% elif item.status == 'claimed' %}
+            <span class="status-pill claimed">Claimed</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="item-detail-content">
+        <div class="item-image-section">
+            <div class="item-photo-hero">
+                {% if item.photo %}
+                <img src="{{ url_for('static', filename='uploads/' + item.photo) }}"
+                     alt="{{ item.title }}">
+                {% else %}
+                <div class="no-photo-hero">No Photo Available</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="item-details-section">
+            <div class="detail-group">
+                <h3>Description</h3>
+                <p>{{ item.description or 'No description provided' }}</p>
+            </div>
+            
+            {% if item.keywords %}
+            <div class="detail-group">
+                <h3>Keywords</h3>
+                <div class="keywords-list">
+                    {% for keyword in item.keywords.split(',') %}
+                    <span class="keyword-tag">{{ keyword.strip() }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="detail-group">
+                <h3>Details</h3>
+                <div class="detail-item">
+                    <span class="detail-label">Location:</span>
+                    <span class="detail-value">{{ item.location }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Date:</span>
+                    <span class="detail-value">{{ item.date_reported.strftime('%B %d, %Y') }}</span>
+                </div>
+            </div>
+            
+            {% if show_claim_button %}
+            <div class="claim-section" id="claim">
+                {% if can_submit_claim %}
+                <button type="button" class="btn btn-primary btn-large" onclick="openClaimModal()">
+                    Claim This Item
+                </button>
+                {% else %}
+                <a href="{{ url_for('claim_login_required', item_id=item.item_id) }}" class="btn btn-primary btn-large">
+                    Claim This Item
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="matches-section">
+        <h2>Similar Matches</h2>
+        {% if matches and matches|length > 0 %}
+        <div class="matches-grid">
+            {% for matched_item, score in matches %}
+            <div class="match-card" onclick="window.location.href='{{ url_for('item_detail', item_id=matched_item.item_id) }}'">
+                <div class="match-score">{{ (score * 100)|round|int }}% Match</div>
+                <div class="item-card-photo">
+                    {% if matched_item.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + matched_item.photo) }}"
+                         alt="{{ matched_item.title }}">
+                    {% else %}
+                    <div class="no-photo">No Photo Available</div>
+                    {% endif %}
+                </div>
+                <div class="match-content">
+                    <h4>{{ matched_item.title }}</h4>
+                    <p class="match-category">{{ matched_item.category }}</p>
+                    <p class="match-location">{{ matched_item.location }}</p>
+                    <p class="match-date">{{ matched_item.date_reported.strftime('%b %d, %Y') }}</p>
+                    {% if matched_item.status == 'lost' %}
+                    <span class="status-pill lost">Lost</span>
+                    {% elif matched_item.status == 'found' %}
+                    <span class="status-pill found">Found</span>
+                    {% elif matched_item.status == 'claimed' %}
+                    <span class="status-pill claimed">Claimed</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if item.status == 'claimed' and current_user and (current_user.user_id == item.user_id or (claims and claims|selectattr('claimer_user_id', 'equalto', current_user.user_id)|list|length > 0)) %}
+        <div class="poster-contact-block">
+            <h3>Item Found By:</h3>
+            <div class="detail-item">
+                <span class="detail-label">Name:</span>
+                <span class="detail-value">{{ item.user.name }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">{{ item.user.email }}</span>
+            </div>
+            {% if item.user.phone %}
+            <div class="detail-item">
+                <span class="detail-label">Phone:</span>
+                <span class="detail-value">{{ item.user.phone }}</span>
+            </div>
+            {% endif %}
+            <div class="detail-item">
+                <span class="detail-label">Uploaded on:</span>
+                <span class="detail-value">{{ item.date_reported.strftime('%B %d, %Y') }}</span>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <p>No similar matches found at this time.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if can_submit_claim %}
+<div id="claimModal" class="modal" role="dialog" aria-labelledby="claimModalTitle">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="claimModalTitle">Confirm Ownership</h3>
+            <button type="button" class="modal-close" onclick="closeClaimModal()" aria-label="Close">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('submit_claim', item_id=item.item_id) }}" enctype="multipart/form-data">
+            <input type="hidden" name="ownership_confirmed" value="true">
+            <div class="modal-body">
+                <p class="modal-intro">
+                    By submitting this claim you confirm that this item belongs to you and you are providing
+                    truthful information. False claims may result in account suspension.
+                </p>
+                <div class="form-group">
+                    <label for="message">Describe why this is your item *</label>
+                    <textarea name="message" id="message" rows="5" class="form-control" required
+                              placeholder="Include unique identifiers, where you lost it, when, and other details..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="proof_image">Upload proof photo (optional)</label>
+                    <input type="file" id="proof_image" name="proof_image" accept="image/*" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-text" onclick="closeClaimModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">I Confirm — Submit Claim</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openClaimModal() {
+    const modal = document.getElementById('claimModal');
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeClaimModal() {
+    const modal = document.getElementById('claimModal');
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('claimModal');
+    if (modal && event.target === modal) {
+        closeClaimModal();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#claim' && document.getElementById('claimModal')) {
+        openClaimModal();
+    }
+});
+</script>
+{% endblock %}
